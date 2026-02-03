@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 
 function App() {
   const [isDragging, setIsDragging] = useState(false);
@@ -6,87 +6,34 @@ function App() {
   const [startPosY, setStartPosY] = useState(0);
   const [currentTranslate, setCurrentTranslate] = useState(0);
   const [prevTranslate, setPrevTranslate] = useState(0);
-  const [isLandscape, setIsLandscape] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
   const [currentPage, setCurrentPage] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
+  // Detectar cambios de tamaño de pantalla
   useEffect(() => {
-    const checkDevice = () => {
-      setIsLandscape(window.innerWidth > window.innerHeight);
-      setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window);
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
     };
-    
-    checkDevice();
-    window.addEventListener('resize', checkDevice);
-    window.addEventListener('orientationchange', checkDevice);
-    
-    return () => {
-      window.removeEventListener('resize', checkDevice);
-      window.removeEventListener('orientationchange', checkDevice);
-    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  // Reproducir video con sonido cuando esté listo
-  useEffect(() => {
-    const video = videoRef.current;
-    if (video) {
-      const playVideoWithSound = () => {
-        video.muted = false;
-        video.volume = 1.0;
-        video.play().catch(err => console.log('Error al reproducir con sonido:', err));
-      };
-      video.addEventListener('canplay', playVideoWithSound);
-      video.addEventListener('loadeddata', playVideoWithSound);
-      return () => {
-        video.removeEventListener('canplay', playVideoWithSound);
-        video.removeEventListener('loadeddata', playVideoWithSound);
-      };
-    }
-  }, []);
-
-  // Activar sonido al hacer click/touch
-  const handleVideoInteraction = async () => {
-    if (videoRef.current) {
-      videoRef.current.muted = false;
-      try {
-        await videoRef.current.play();
-      } catch (error) {
-        console.log('Error al activar sonido:', error);
-      }
-    }
-  };
-
-  // Scroll hacia abajo para ocultar la barra de direcciones
-  useEffect(() => {
-    if (!isLandscape && isMobile) {
-      // Hacer scroll hacia abajo para ocultar la barra
-      setTimeout(() => {
-        window.scrollTo(0, 1);
-        // Forzar el scroll después de un momento
-        setTimeout(() => {
-          window.scrollTo(0, 1);
-        }, 500);
-      }, 100);
-    }
-  }, [isLandscape, isMobile]);
 
   const sections = [
     {
       id: 0,
-      backgroundImage: "/fondo1.png"
+      backgroundImage: isMobile ? "/fondomovil1.png" : "/fondo1.png"
     },
     {
       id: 1,
-      backgroundImage: "/fondo2.png"
+      backgroundImage: isMobile ? "/fondomovil1.png" : "/fondo2.png"
     },
     {
       id: 2,
-      backgroundImage: "/fondo3.png"
+      backgroundImage: isMobile ? "/fondomovil1.png" : "/fondo3.png"
     },
     {
       id: 3,
-      backgroundImage: "/fondo4.png"
+      backgroundImage: isMobile ? "/fondomovil1.png" : "/fondo4.png"
     }
   ];
 
@@ -203,44 +150,17 @@ function App() {
         </div>
       )}
 
-      {/* Video para móvil en vertical */}
-      {!isLandscape && isMobile && (
-        <div 
-          className="fixed inset-0 bg-black z-50" 
-          style={{ 
-            height: '100vh',
-            width: '100vw',
-            top: 0,
-            left: 0
-          }}
-          onClick={handleVideoInteraction}
-          onTouchStart={handleVideoInteraction}
-        >
-          <video
-            ref={videoRef}
-            src="/obrocekran.mp4"
-            autoPlay
-            loop
-            playsInline
-            muted={false}
-            className="w-full h-full object-cover"
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              pointerEvents: 'none',
-              objectFit: 'cover'
-            }}
-          />
-        </div>
-      )}
-
-      {/* Contenido principal - solo visible en horizontal */}
+      {/* Contenido principal */}
       <div 
-        className="w-screen overflow-hidden relative bg-black touch-pan-y"
-        style={{ 
+        className={`w-screen overflow-hidden relative bg-black touch-pan-y ${
+          isMobile ? 'fondo-movil' : ''
+        }`}
+        style={isMobile ? {
+          cursor: isDragging ? 'grabbing' : 'grab',
+          height: '100vh',
+          overflow: 'hidden',
+          backgroundPositionX: `${currentTranslate * 1}px`
+        } : { 
           cursor: isDragging ? 'grabbing' : 'grab',
           height: '100vh',
           overflow: 'hidden'
@@ -263,7 +183,7 @@ function App() {
           <div
             key={section.id}
             className="section-bg flex-shrink-0 w-screen h-screen relative"
-            style={{
+            style={isMobile ? {} : {
               backgroundImage: `url(${section.backgroundImage})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
@@ -273,265 +193,172 @@ function App() {
             {/* Título con efecto glitch, solo en la primera sección */}
             {section.id === 0 && (
               <>
-                <div className="glitch absolute top-4 right-4 md:top-8 md:right-8 w-[50vw] max-w-[900px] pointer-events-none select-none z-50">
+                <div className={`glitch absolute pointer-events-none select-none z-50 ${
+                  isMobile 
+                    ? 'bottom-8 left-4 w-[90vw] max-w-[400px]' 
+                    : 'top-4 right-4 md:top-8 md:right-8 w-[50vw] max-w-[900px]'
+                }`}>
                   <img src="/zajebistymarketing.png" alt="Zajebisty Marketing" draggable={false} />
                   <img src="/zajebistymarketing.png" alt="" aria-hidden="true" draggable={false} />
                   <img src="/zajebistymarketing.png" alt="" aria-hidden="true" draggable={false} />
                 </div>
                 
-                {/* Ghost Button en la esquina inferior izquierda */}
-                <div className="absolute bottom-4 left-4 md:bottom-8 md:left-8 z-50">
+                {/* Ghost Button ahora arriba para ambas versiones */}
+                <div className="absolute top-4 left-4 md:top-8 md:left-8 z-50">
                   <div className="relative">
-                    {/* Texto "Kim jestem?" */}
-                    <div className="kim-text">KIM JESTEM?</div>
-                    
-                    {/* Foto clickeable */}
+                    {/* GIF "Kim jestem?" sin movimiento */}
                     <img 
-                      src="/Kim jestesmy.png"
+                      src="/kimjestem.gif"
                       alt="Kim jestem?"
-                      className="cursor-pointer hover:scale-105 transition-transform duration-300 float-button"
-                      style={{ maxWidth: '200px', height: 'auto' }}
+                      className="cursor-pointer"
+                      style={{ maxWidth: isMobile ? '200px' : '400px', height: 'auto' }}
                       onClick={() => {
-                        // En móvil, girar pantalla automáticamente y abrir video
-                        if (isMobile) {
-                          // Intentar girar la pantalla automáticamente
-                          const rotateScreen = async () => {
-                            try {
-                              // Intentar usar Screen Orientation API
-                              if (screen.orientation && screen.orientation.lock) {
-                                await screen.orientation.lock('landscape');
-                              }
-                            } catch (error) {
-                              console.log('No se pudo girar automáticamente:', error);
-                            }
-                          };
-                          
-                          // Ejecutar rotación
-                          rotateScreen();
-                          
-                          // Ocultar el contenido actual
-                          const mainContent = document.querySelector('.w-screen.overflow-hidden.relative.bg-black');
-                          if (mainContent) {
-                            (mainContent as HTMLElement).style.display = 'none';
-                          }
-                          
-                          // Crear video en pantalla completa
-                          const videoContainer = document.createElement('div');
-                          videoContainer.style.cssText = `
-                            position: fixed;
-                            top: 0;
-                            left: 0;
-                            width: 100vw;
-                            height: 100vh;
-                            background: black;
-                            z-index: 9999;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                          `;
-                          
-                          const video = document.createElement('video');
-                          video.src = '/marketingzjajami.mp4';
-                          video.controls = true;
-                          video.autoplay = true;
-                          video.style.cssText = `
-                            width: 100%;
-                            height: 100%;
-                            object-fit: contain;
-                          `;
-                          
-                          videoContainer.appendChild(video);
-                          
-                          // Mensaje de confirmación
-                          const confirmMessage = document.createElement('div');
-                          confirmMessage.innerHTML = '🔄 Pantalla girando automáticamente...';
-                          confirmMessage.style.cssText = `
-                            position: absolute;
-                            top: 50%;
-                            left: 50%;
-                            transform: translate(-50%, -50%);
-                            background: rgba(0,0,0,0.8);
-                            color: white;
-                            padding: 20px;
-                            border-radius: 10px;
-                            font-size: 16px;
-                            text-align: center;
-                            z-index: 10001;
-                            pointer-events: none;
-                          `;
-                          
-                          videoContainer.appendChild(confirmMessage);
-                          document.body.appendChild(videoContainer);
-                          
-                          // Ocultar mensaje después de 2 segundos
-                          setTimeout(() => {
-                            if (confirmMessage.parentNode) {
-                              confirmMessage.parentNode.removeChild(confirmMessage);
-                            }
-                          }, 2000);
-                          
-                          // Botón para cerrar
-                          const closeButton = document.createElement('button');
-                          closeButton.innerHTML = '✕';
-                          closeButton.style.cssText = `
-                            position: absolute;
-                            top: 20px;
-                            right: 20px;
-                            background: rgba(0,0,0,0.7);
-                            color: white;
-                            border: none;
-                            border-radius: 50%;
-                            width: 40px;
-                            height: 40px;
-                            font-size: 20px;
-                            cursor: pointer;
-                            z-index: 10000;
-                          `;
-                          
-                          closeButton.onclick = async () => {
-                            // Intentar volver a portrait al cerrar
-                            try {
-                              if (screen.orientation && screen.orientation.lock) {
-                                await screen.orientation.lock('portrait');
-                              }
-                            } catch (error) {
-                              console.log('No se pudo volver a portrait:', error);
-                            }
-                            
-                            document.body.removeChild(videoContainer);
-                            if (mainContent) {
-                              (mainContent as HTMLElement).style.display = 'block';
-                            }
-                          };
-                          
-                          videoContainer.appendChild(closeButton);
-                        } else {
-                          // En desktop, mostrar video en pantalla completa con fondo de la web
-                          // Ocultar el contenido actual
-                          const mainContent = document.querySelector('.w-screen.overflow-hidden.relative.bg-black');
-                          if (mainContent) {
-                            (mainContent as HTMLElement).style.display = 'none';
-                          }
-                          
-                          // Crear video en pantalla completa con fondo de la web
-                          const videoContainer = document.createElement('div');
-                          videoContainer.style.cssText = `
-                            position: fixed;
-                            top: 0;
-                            left: 0;
-                            width: 100vw;
-                            height: 100vh;
-                            background: linear-gradient(135deg, #000000 0%, #1a1a1a 50%, #000000 100%);
-                            z-index: 9999;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                          `;
-                          
-                          const video = document.createElement('video');
-                          video.src = '/marketingzjajami.mp4';
-                          video.controls = true;
-                          video.autoplay = true;
-                          video.style.cssText = `
-                            max-width: 90%;
-                            max-height: 90%;
-                            object-fit: contain;
-                            box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
-                          `;
-                          
-                          videoContainer.appendChild(video);
-                          
-                          // Botón para cerrar
-                          const closeButton = document.createElement('button');
-                          closeButton.innerHTML = '✕';
-                          closeButton.style.cssText = `
-                            position: absolute;
-                            top: 20px;
-                            right: 20px;
-                            background: rgba(0,0,0,0.7);
-                            color: white;
-                            border: none;
-                            border-radius: 50%;
-                            width: 50px;
-                            height: 50px;
-                            font-size: 24px;
-                            cursor: pointer;
-                            z-index: 10000;
-                            transition: all 0.3s ease;
-                          `;
-                          
-                          closeButton.onmouseover = () => {
-                            closeButton.style.background = 'rgba(255, 0, 0, 0.8)';
-                            closeButton.style.transform = 'scale(1.1)';
-                          };
-                          
-                          closeButton.onmouseout = () => {
-                            closeButton.style.background = 'rgba(0,0,0,0.7)';
-                            closeButton.style.transform = 'scale(1)';
-                          };
-                          
-                          closeButton.onclick = () => {
-                            document.body.removeChild(videoContainer);
-                            if (mainContent) {
-                              (mainContent as HTMLElement).style.display = 'block';
-                            }
-                          };
-                          
-                          videoContainer.appendChild(closeButton);
-                          document.body.appendChild(videoContainer);
+                        // Mostrar video en pantalla completa
+                        const mainContent = document.querySelector('.w-screen.overflow-hidden.relative.bg-black');
+                        if (mainContent) {
+                          (mainContent as HTMLElement).style.display = 'none';
                         }
+                        
+                        // Crear video en pantalla completa con fondo de la web
+                        const videoContainer = document.createElement('div');
+                        videoContainer.style.cssText = `
+                          position: fixed;
+                          top: 0;
+                          left: 0;
+                          width: 100vw;
+                          height: 100vh;
+                          background: linear-gradient(135deg, #000000 0%, #1a1a1a 50%, #000000 100%);
+                          z-index: 9999;
+                          display: flex;
+                          align-items: center;
+                          justify-content: center;
+                        `;
+                        
+                        const video = document.createElement('video');
+                        video.src = '/marketingzjajami.mp4';
+                        video.controls = true;
+                        video.autoplay = true;
+                        video.playsInline = true;
+                        video.style.cssText = `
+                          max-width: 90%;
+                          max-height: 90%;
+                          object-fit: contain;
+                          box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+                        `;
+                        
+                        videoContainer.appendChild(video);
+                        
+                        // Botón para cerrar
+                        const closeButton = document.createElement('button');
+                        closeButton.innerHTML = '✕';
+                        closeButton.style.cssText = `
+                          position: absolute;
+                          top: 20px;
+                          right: 20px;
+                          background: rgba(0,0,0,0.7);
+                          color: white;
+                          border: none;
+                          border-radius: 50%;
+                          width: 50px;
+                          height: 50px;
+                          font-size: 24px;
+                          cursor: pointer;
+                          z-index: 10000;
+                          transition: all 0.3s ease;
+                        `;
+                        
+                        closeButton.onmouseover = () => {
+                          closeButton.style.background = 'rgba(255, 0, 0, 0.8)';
+                          closeButton.style.transform = 'scale(1.1)';
+                        };
+                        
+                        closeButton.onmouseout = () => {
+                          closeButton.style.background = 'rgba(0,0,0,0.7)';
+                          closeButton.style.transform = 'scale(1)';
+                        };
+                        
+                        closeButton.onclick = () => {
+                          document.body.removeChild(videoContainer);
+                          if (mainContent) {
+                            (mainContent as HTMLElement).style.display = 'block';
+                          }
+                        };
+                        
+                        videoContainer.appendChild(closeButton);
+                        document.body.appendChild(videoContainer);
                       }}
                     />
+                    
+                    {/* Texto DEBAJO del GIF con mejor visibilidad */}
+                    <div className="kim-text-below">Kim jestem?</div>
                   </div>
                 </div>
               </>
             )}
 
-            {/* Tarjeta 3D interactiva en la segunda sección */}
+            {/* Diseño con texto sobre imagen de hoja con efecto flip en la segunda sección */}
             {section.id === 1 && (
               <div className="absolute inset-0 flex items-center justify-center z-50">
-                <div className="card-container noselect">
-                  <div className="canvas">
-                    <div className="tracker tr-1"></div>
-                    <div className="tracker tr-2"></div>
-                    <div className="tracker tr-3"></div>
-                    <div className="tracker tr-4"></div>
-                    <div className="tracker tr-5"></div>
-                    <div className="tracker tr-6"></div>
-                    <div className="tracker tr-7"></div>
-                    <div className="tracker tr-8"></div>
-                    <div className="tracker tr-9"></div>
-                    <div className="tracker tr-10"></div>
-                    <div className="tracker tr-11"></div>
-                    <div className="tracker tr-12"></div>
-                    <div className="tracker tr-13"></div>
-                    <div className="tracker tr-14"></div>
-                    <div className="tracker tr-15"></div>
-                    <div className="tracker tr-16"></div>
-                    <div className="tracker tr-17"></div>
-                    <div className="tracker tr-18"></div>
-                    <div className="tracker tr-19"></div>
-                    <div className="tracker tr-20"></div>
-                    <div className="tracker tr-21"></div>
-                    <div className="tracker tr-22"></div>
-                    <div className="tracker tr-23"></div>
-                    <div className="tracker tr-24"></div>
-                    <div className="tracker tr-25"></div>
-                    <div id="card">
-                      <p id="prompt">
-                        Potrzebujesz <span className="highlight-word">ZAJEBISTEJ</span> strony internetowej, co <span className="highlight-word">ZAJEBISCIE</span> sprzedaje?
-                      </p>
-                      <div className="title">
-                        <p className="title-top">ZAJEBISCIE SIĘ SKŁADA! ZNALAZŁEŚ MNIE!</p>
-                        <div className="title-content">
-                          <p className="intro-text">Bo trzeba przyciągnąć uwagę klientów i sprawić, że będą o tobie pamiętać w tym świecie pełnym klonów.</p>
-                          <p className="subtitle-text">Dlatego tworzę:</p>
-                          <ul className="services-list">
-                            <li><span className="highlight-word">Zajebisty</span> copywriting (coś, z jajami!)</li>
-                            <li><span className="highlight-word">Zajebista</span> strona internetowa</li>
-                            <li><span className="highlight-word">Zajebisty</span> marketing</li>
-                            <li><span className="highlight-word">Zajebisty</span> branding</li>
-                          </ul>
+                <div className={`leaf-flip-container ${
+                  isMobile 
+                    ? 'w-[90vw] max-w-[400px] h-[60vh] max-h-[500px]' 
+                    : 'w-[700px] h-[500px]'
+                }`}>
+                  <div className="leaf-flip-inner">
+                    {/* Lado frontal - Texto sobre hoja */}
+                    <div className="leaf-flip-front">
+                      {/* Imagen de la hoja como fondo (SIN transparencia) */}
+                      <div className="absolute inset-0">
+                        <img 
+                          src="/hoja.png" 
+                          alt="Hoja" 
+                          className="w-full h-full object-contain"
+                          draggable={false}
+                        />
+                      </div>
+                      
+                      {/* Texto superpuesto sobre la hoja */}
+                      <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+                        <div className={`leaf-text ${
+                          isMobile 
+                            ? 'text-lg leading-tight px-4' 
+                            : 'text-2xl leading-relaxed px-8'
+                        }`}>
+                          <p className="text-white font-bold mb-4 drop-shadow-lg">
+                            Potrzebujesz <span className="leaf-highlight">ZAJEBISTEJ</span><br/>
+                            strony internetowej, co <span className="leaf-highlight">ZAJEBISCIE</span><br/>
+                            sprzedaje?
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Lado trasero - La misma hoja con más contenido */}
+                    <div className="leaf-flip-back">
+                      {/* La MISMA imagen de la hoja como fondo */}
+                      <div className="absolute inset-0">
+                        <img 
+                          src="/hoja.png" 
+                          alt="Hoja" 
+                          className="w-full h-full object-contain"
+                          draggable={false}
+                        />
+                      </div>
+                      
+                      {/* Contenido detallado superpuesto sobre la hoja */}
+                      <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+                        <div className="leaf-back-content">
+                          <h2 className="leaf-back-title">ZAJEBISCIE SIĘ SKŁADA! ZNALAZŁEŚ MNIE!</h2>
+                          <div className="leaf-back-text">
+                            <p className="leaf-intro-text">Bo trzeba przyciągnąć uwagę klientów i sprawić, że będą o tobie pamiętać w tym świecie pełnym klonów.</p>
+                            <p className="leaf-subtitle-text">Dlatego tworzę:</p>
+                            <ul className="leaf-services-list">
+                              <li><span className="leaf-highlight">Zajebisty</span> copywriting (coś, z jajami!)</li>
+                              <li><span className="leaf-highlight">Zajebista</span> strona internetowa</li>
+                              <li><span className="leaf-highlight">Zajebisty</span> marketing</li>
+                              <li><span className="leaf-highlight">Zajebisty</span> branding</li>
+                            </ul>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -544,7 +371,9 @@ function App() {
             {section.id === 2 && (
               <>
                 <div className="absolute top-4 left-4 md:top-8 md:left-8 z-50">
-                  <div className="glitch w-[300px] pointer-events-none select-none">
+                  <div className={`glitch pointer-events-none select-none ${
+                    isMobile ? 'w-[200px]' : 'w-[300px]'
+                  }`}>
                     <img src="/marketingzjajami.png" alt="Marketing z jajami" draggable={false} />
                     <img src="/marketingzjajami.png" alt="" aria-hidden="true" draggable={false} />
                     <img src="/marketingzjajami.png" alt="" aria-hidden="true" draggable={false} />
@@ -552,10 +381,14 @@ function App() {
                 </div>
 
                 {/* Tarjetas en el lado derecho: dos arriba, una abajo */}
-                <div className="absolute right-32 top-1/2 -translate-y-1/2 z-40">
-                  <div className="flex flex-col items-center gap-6">
+                <div className={`absolute z-40 ${
+                  isMobile 
+                    ? 'right-4 top-1/2 -translate-y-1/2' 
+                    : 'right-32 top-1/2 -translate-y-1/2'
+                }`}>
+                  <div className={`flex flex-col items-center ${isMobile ? 'gap-3' : 'gap-6'}`}>
                     {/* Fila superior: dos tarjetas */}
-                    <div className="flex gap-6">
+                    <div className={`flex ${isMobile ? 'gap-2 scale-75' : 'gap-6'}`}>
                       {/* Tarjeta 1 - Marketing Klon */}
                       <div 
                         className="flip-card cursor-pointer"
@@ -603,7 +436,7 @@ function App() {
 
                     {/* Fila inferior: una tarjeta centrada */}
                     <div 
-                      className="flip-card cursor-pointer"
+                      className={`flip-card cursor-pointer ${isMobile ? 'scale-75' : ''}`}
                       onClick={() => setCurrentPage('itojestzajebistymarketing.png')}
                     >
                       <div className="flip-card-front">
